@@ -52,6 +52,7 @@ function lbuild () {
 
 function lrun () {
     echo "run"
+    cargo run
 }
 
 function lclean () {
