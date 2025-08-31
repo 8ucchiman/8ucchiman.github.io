@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]            # ← デプロイ元ブランチ
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -20,22 +20,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Rust をセットアップ
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      # 必要ならフォントや静的アセットを配置（例）
+      # サイト生成（dist/ に書き出し）
+      - name: Build site
+        run: cargo run --release
+
+      # ←← ビルドの「後」でフォント等を配置する
       - name: Prepare assets (fonts, images)
         run: |
           mkdir -p dist/assets/fonts
           cp -r ./assets/fonts/* dist/assets/fonts/ || true
 
-      # サイト生成（あなたのmain.rsが dist/ に書き出す想定）
-      - name: Build site
-        run: cargo run --release
-
-      # Pages 用アーティファクトとして dist/ をアップロード
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
