@@ -249,19 +249,15 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
 
 /* スクロール時に出現するタブ */
 .sticky-tabs{
-  position:fixed; top:12px; left:50%; transform:translateX(-50%);
-  display:flex; gap:8px;
-  background:rgba(15, 23, 42, .55);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border:1px solid var(--ring);
-  padding:8px;
-  border-radius:999px;
-  z-index:10;
-
-  opacity:0; pointer-events:none; transition:opacity .25s ease;
+  position:fixed; top:12px; left:50%; transform:translate(-50%, -12px);
+  opacity:0; pointer-events:none; transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .25s ease;
+  /* 既存の装飾（背景/枠/blur/paddingなど）はこの下に残してOK */
 }
-.sticky-tabs.visible{opacity:1; pointer-events:auto;}
+.sticky-tabs.visible{
+  transform:translate(-50%, 0);
+  opacity:1; pointer-events:auto;
+}
+
 .tablink{
   appearance:none; border:0; border-radius:999px; padding:8px 14px;
   color:#fff; background:transparent; font-weight:800; cursor:pointer;
