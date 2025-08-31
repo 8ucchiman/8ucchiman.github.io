@@ -8,20 +8,22 @@
  */
 
 
-
 use std::{fs, path::Path};
 
 #[derive(Clone)]
 struct Tab<'a> {
-    key: &'a str,         // 旧タブ由来。メディア選択にのみ使用
+    key: &'a str,
     label: &'a str,
     description: &'a str,
-    gif_url: &'a str,     // .gif（任意）
-    video_url: &'a str,   // .mp4/.webm（任意）
+    gif_url: &'a str,
+    video_url: &'a str,
 }
 
 fn main() -> std::io::Result<()> {
-    // メディア選択用（video優先→gif）
+    // キャッシュバスター（本番は Actions から ASSET_VER=github.sha を渡す）
+    let ver = std::env::var("ASSET_VER").unwrap_or_else(|_| "dev".to_string());
+
+    // メディア選択用（video 優先 → gif）
     let tabs = vec![
         Tab { key: "robotics", label: "robotics", description: "Robotics demos, embedded systems, and real-time CV.", gif_url: "assets/mugen.gif",              video_url: "" },
         Tab { key: "3d",       label: "3d render", description: "Procedural scenes, Blender, OpenGL/GLFW, path tracing.",       gif_url: "assets/samurai_champloo.gif", video_url: "" },
@@ -38,24 +40,24 @@ fn main() -> std::io::Result<()> {
     fs::write(out.join(".nojekyll"), b"")?;
     fs::write(out.join("assets/style.css"), STYLE_CSS)?;
     fs::write(out.join("assets/app.js"), APP_JS)?;
-    fs::write(out.join("index.html"), index_page(&tabs))?;
+    fs::write(out.join("index.html"), index_page(&tabs, &ver))?;
 
     println!("\nOK: generated ./dist\nPreview: python3 -m http.server -d dist 8000\n");
     Ok(())
 }
 
-fn index_page(tabs: &[Tab]) -> String {
+fn index_page(tabs: &[Tab], ver: &str) -> String {
     let (media_html, has_media) = pick_media_html(tabs);
 
-    // NOTE: r##" ... "## にして、HTML内の `"#` に耐性を持たせる
+    // r##" ... "## にして、HTML内の `"#` を安全に扱う
     format!(r##"<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>8ucchiman | Portfolio</title>
-<link rel="preload" as="style" href="assets/style.css">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="preload" as="style" href="assets/style.css?v={v}">
+<link rel="stylesheet" href="assets/style.css?v={v}">
 <meta name="color-scheme" content="light dark">
 </head>
 <body>
@@ -109,10 +111,11 @@ fn index_page(tabs: &[Tab]) -> String {
 </section>
 
 {fallback_note}
-<script src="assets/app.js" defer></script>
+<script src="assets/app.js?v={v}" defer></script>
 </body>
 </html>
 "##,
+        v = ver,
         media = media_html,
         fallback_note = if has_media { String::new() } else { r#"<p class="desc">No media found. Put a GIF/MP4 under assets/ and set its path in the code.</p>"#.to_string() }
     )
@@ -122,16 +125,12 @@ fn pick_media_html(tabs: &[Tab]) -> (String, bool) {
     // 1) video_url 優先
     if let Some(t) = tabs.iter().find(|t| !t.video_url.trim().is_empty()) {
         let v = html_attr(t.video_url);
-        let html = format!(
-            r#"<video playsinline muted loop autoplay preload="metadata" src="{v}"></video>"#
-        );
-        return (html, true);
+        return (format!(r#"<video playsinline muted loop autoplay preload="metadata" src="{v}"></video>"#), true);
     }
     // 2) なければ gif_url
     if let Some(t) = tabs.iter().find(|t| !t.gif_url.trim().is_empty()) {
         let g = html_attr(t.gif_url);
-        let html = format!(r#"<img loading="lazy" src="{g}" alt="preview gif">"#);
-        return (html, true);
+        return (format!(r#"<img loading="lazy" src="{g}" alt="preview gif">"#), true);
     }
     // 3) プレースホルダ
     (r#"<div class="placeholder"></div>"#.to_string(), false)
@@ -145,44 +144,36 @@ fn html_attr(s: &str) -> String { html_escape(s).replace('\"', "&quot;") }
 
 // ----------------- Embedded assets -----------------
 const STYLE_CSS: &str = r#"
+/* === mononoki を全体に適用（woff2 → ttf フォールバック） === */
 @font-face {
-  font-family: 'Mononoki Nerd';
-  src: url('fonts/MononokiNerdFont-Regular.ttf') format('truetype');
+  font-family: 'mononoki';
+  src: url('fonts/MononokiNerdFont-Regular.woff2') format('woff2'),
+       url('fonts/MononokiNerdFont-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Mononoki Nerd';
-  src: url('fonts/MononokiNerdFont-Bold.ttf') format('truetype');
+  font-family: 'mononoki';
+  src: url('fonts/MononokiNerdFont-Bold.woff2') format('woff2'),
+       url('fonts/MononokiNerdFont-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* 本文や見出しに適用 */
-html { scroll-behavior: smooth; } /* スムーススクロール */
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: 'Mononoki Nerd', monospace;   /* ← 統一 */
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--fg);
-  background: linear-gradient(120deg,var(--bg1),var(--bg2)) fixed;
-}
-
-/* フォーム/ボタンも継承を確実化 */
-button, input, select, textarea { font: inherit; }
-
-/* 見出し・コードも明示しておくと安心 */
-h1, h2, h3, h4, h5, h6, code, pre, .headline, .tablink { font-family: 'Mononoki Nerd', monospace; }
-
 :root{--bg1:#0b1220;--bg2:#0b1020;--fg:#e2e8f0;--muted:#94a3b8;--ring:rgba(255,255,255,.1)}
 @media (prefers-color-scheme: light){:root{--bg1:#f8fafc;--bg2:#eef2ff;--fg:#0f172a;--muted:#475569;--ring:rgba(0,0,0,.06)}}
+
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--fg);background:linear-gradient(120deg,var(--bg1),var(--bg2)) fixed}
+html{scroll-behavior:smooth}
+body{
+  margin:0; font-family:'mononoki', monospace; font-size:16px; line-height:1.6; color:var(--fg);
+  background:linear-gradient(120deg,var(--bg1),var(--bg2)) fixed;
+}
+button,input,select,textarea{font:inherit}
+h1,h2,h3,h4,h5,h6,code,pre,.headline,.tablink{font-family:'mononoki', monospace}
 
 /* 背景のぼかしオーブ */
 .bg-orbs::before,.bg-orbs::after{content:"";position:fixed;inset:auto;filter:blur(60px);z-index:-1;border-radius:9999px}
@@ -191,46 +182,25 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
 
 /* フルスクリーンの巨大プレビュー */
 .preview{
-  position:relative;
-  width:100vw;
-  height:100vh;         /* ブラウザ全面に */
-  overflow:hidden;
-  background:#082b4b;   /* ローディング時の濃紺 */
+  position:relative; width:100vw; height:100vh; overflow:hidden; background:#082b4b;
 }
 .media, .media img, .media video{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 }
 
-/* 3行見出し（縦中央寄せ・縦引き伸ばし・適切な行間） */
-.headline {
-  position:absolute;
-  left:1vw;
-  top:0;
-  bottom:0;
-  z-index:3;
-  pointer-events:none;
-
-  display:flex;
-  flex-direction:column;
-  justify-content:center;   /* 縦中央寄せ */
-
-  font-weight:900;
-  letter-spacing:-.02em;
-  color:#fff;
-  text-shadow:0 2px 14px rgba(0,0,0,.55);
-  margin:0;
-  padding:0;
+/* 3行見出し（縦中央寄せ・縦引き伸ばし・行間確保） */
+.headline{
+  position:absolute; left:1vw; top:0; bottom:0; z-index:3; pointer-events:none;
+  display:flex; flex-direction:column; justify-content:center;
+  font-weight:900; letter-spacing:-.02em; color:#fff; text-shadow:0 2px 14px rgba(0,0,0,.55);
+  margin:0; padding:0;
 }
-.headline span {
-  display:block;
-  text-align:left;
+.headline span{
+  display:block; text-align:left;
   font-size:clamp(28px, 12vh, 22vh);
-  line-height:1;             /* 行内は詰める */
-  margin:4vh 0;              /* 行間の余白（重なり防止） */
-  padding:0;
-
-  transform: scaleY(1.5);    /* 縦方向に引き伸ばす倍率（調整可） */
-  transform-origin: left center;
+  line-height:1;
+  margin:4vh 0; padding:0;
+  transform:scaleY(1.5); transform-origin:left center; /* 縦に引き伸ばす */
 }
 
 /* 下部グラデで可読性UP */
@@ -238,25 +208,27 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
 
 /* セクション */
 .section{
-  min-height:100vh;
-  display:flex; align-items:center;
+  min-height:100vh; display:flex; align-items:center;
   border-top:1px solid var(--ring);
   background:linear-gradient(180deg, transparent, rgba(0,0,0,.04));
 }
 .container{max-width:1100px; margin:0 auto; padding:6vh 20px;}
 .section h3{margin:0 0 12px; font-size:clamp(24px, 5vw, 40px); font-weight:900;}
 .section p{margin:0; color:var(--muted)}
+.desc{max-width:1100px;margin:10px auto 32px;padding:0 20px;opacity:.8}
 
-/* スクロール時に出現するタブ */
+/* スクロール時に出現するタブ（A: スライドダウン＋フェード） */
 .sticky-tabs{
   position:fixed; top:12px; left:50%; transform:translate(-50%, -12px);
-  opacity:0; pointer-events:none; transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .25s ease;
-  /* 既存の装飾（背景/枠/blur/paddingなど）はこの下に残してOK */
+  display:flex; gap:8px;
+  background:rgba(15,23,42,.55);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border:1px solid var(--ring); padding:8px; border-radius:999px; z-index:10;
+
+  opacity:0; pointer-events:none;
+  transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .25s ease;
 }
-.sticky-tabs.visible{
-  transform:translate(-50%, 0);
-  opacity:1; pointer-events:auto;
-}
+.sticky-tabs.visible{ transform:translate(-50%, 0); opacity:1; pointer-events:auto; }
 
 .tablink{
   appearance:none; border:0; border-radius:999px; padding:8px 14px;
@@ -265,14 +237,13 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
 .tablink:hover{background:rgba(255,255,255,.08)}
 .tablink:focus{outline:2px solid rgba(255,255,255,.35); outline-offset:2px}
 
-/* 補足文（任意） */
-.desc{max-width:1100px;margin:10px auto 32px;padding:0 20px;opacity:.8}
+/* 低モーション設定への配慮 */
+@media (prefers-reduced-motion: reduce){
+  .sticky-tabs, .sticky-tabs.visible, .tablink{ transition:none !important; transform:none !important; filter:none !important; }
+}
 
 /* プレースホルダ */
-.placeholder{
-  width:100%; height:100%;
-  background:linear-gradient(135deg, rgba(148,163,184,.25), rgba(226,232,240,.35));
-}
+.placeholder{ width:100%; height:100%; background:linear-gradient(135deg, rgba(148,163,184,.25), rgba(226,232,240,.35)); }
 "#;
 
 const APP_JS: &str = r#"
@@ -280,7 +251,6 @@ const APP_JS: &str = r#"
 (function(){
   const tabs = document.getElementById('stickyTabs');
   const home = document.getElementById('home');
-
   if (!tabs || !home) return;
 
   if ('IntersectionObserver' in window) {

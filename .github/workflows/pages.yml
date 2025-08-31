@@ -24,11 +24,11 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      # サイト生成（dist/ に書き出し）
       - name: Build site
         run: cargo run --release
+        env:
+          ASSET_VER: ${{ github.sha }}
 
-      # ←← ビルドの「後」でフォント等を配置する
       - name: Prepare assets (fonts, images)
         run: |
           mkdir -p dist/assets/fonts
