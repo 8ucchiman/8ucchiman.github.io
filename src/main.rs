@@ -115,13 +115,13 @@ fn html_attr(s: &str) -> String { html_escape(s).replace('\"', "&quot;") }
 const STYLE_CSS: &str = r#"
 @font-face {
   font-family: 'Mononoki Nerd';
-  src: url('assets/fonts/MononokiNerdFont-Bold.woff2') format('woff2');
+  src: url('fonts/MononokiNerdFont-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
 @font-face {
   font-family: 'Mononoki Nerd';
-  src: url('assets/fonts/MononokiNerdFont-Bold.woff2') format('woff2');
+  src: url('fonts/MononokiNerdFont-Bold.ttf') format('truetype');
   font-weight: bold;
   font-style: normal;
 }
@@ -157,8 +157,6 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 }
 
-
-/* 見出し：ブラウザ高さいっぱい、中央寄せで行間ゼロ */
 .headline {
   position:absolute;
   left:1vw;
@@ -168,9 +166,9 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
   pointer-events:none;
 
   display:flex;
-  flex-direction:column;    /* 縦積み */
+  flex-direction:column;
   justify-content:center;   /* 縦中央寄せ */
-  
+
   font-weight:900;
   letter-spacing:-.02em;
   color:#fff;
@@ -181,12 +179,19 @@ body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color
 
 .headline span {
   display:block;
-  text-align:left;                /* 左寄せ維持 */
+  text-align:left;
   font-size:clamp(28px, 12vh, 22vh);
-  line-height:1;                  /* 行間ゼロ */
-  margin:0;
+  line-height:1;             /* 行の中は詰める */
+  margin:4vh 0;              /* ← 行間の余白を追加 */
   padding:0;
+
+  transform: scaleY(1.5);    /* 縦方向に引き伸ばす倍率 */
+  transform-origin: left center;
 }
+
+
+
+
 
 
 

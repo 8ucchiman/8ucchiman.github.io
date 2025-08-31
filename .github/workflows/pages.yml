@@ -1,8 +1,8 @@
-name: Deploy static site to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]            # ← デプロイ元ブランチ
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -19,22 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
 
-      # ビルド: cargo run で dist/ を生成
+      # Rust をセットアップ
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      # 必要ならフォントや静的アセットを配置（例）
+      - name: Prepare assets (fonts, images)
+        run: |
+          mkdir -p dist/assets/fonts
+          cp -r ./assets/fonts/* dist/assets/fonts/ || true
+
+      # サイト生成（あなたのmain.rsが dist/ に書き出す想定）
       - name: Build site
         run: cargo run --release
 
-      # 念のため .nojekyll を保証
-      - name: Ensure .nojekyll
-        run: |
-          mkdir -p dist
-          test -f dist/.nojekyll || touch dist/.nojekyll
-
-      # Pages 用アーティファクト
-      - uses: actions/upload-pages-artifact@v3
+      # Pages 用アーティファクトとして dist/ をアップロード
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
