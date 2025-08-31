@@ -2,8 +2,8 @@
  * FileName:        main
  * Author:          8ucchiman
  * CreatedDate:     2025-08-30 19:04:06
- * LastModified:    2023-01-23 14:15:07 +0900
- * Reference:       8ucchiman.jp
+ * LastModified:    2025-08-31 22:19:14
+ * Reference:       8ucchiman.github.io
  * Description:     ---
  */
 
@@ -162,7 +162,13 @@ const STYLE_CSS: &str = r#"
   font-display: swap;
 }
 
-:root{--bg1:#0b1220;--bg2:#0b1020;--fg:#e2e8f0;--muted:#94a3b8;--ring:rgba(255,255,255,.1)}
+:root{
+  --bg1:#0b1220;--bg2:#0b1020;--fg:#e2e8f0;--muted:#94a3b8;--ring:rgba(255,255,255,.1);
+  /* 追加：モダンなグラデのアクセント色 */
+  --ac1:#60a5fa; /* sky-400 */
+  --ac2:#a78bfa; /* violet-400 */
+  --ac3:#34d399; /* emerald-400 */
+}
 @media (prefers-color-scheme: light){:root{--bg1:#f8fafc;--bg2:#eef2ff;--fg:#0f172a;--muted:#475569;--ring:rgba(0,0,0,.06)}}
 
 *{box-sizing:border-box}
@@ -237,6 +243,15 @@ h1,h2,h3,h4,h5,h6,code,pre,.headline,.tablink{font-family:'mononoki', monospace}
 .tablink:hover{background:rgba(255,255,255,.08)}
 .tablink:focus{outline:2px solid rgba(255,255,255,.35); outline-offset:2px}
 
+.tablink.active{
+  background: linear-gradient(135deg, var(--ac1), var(--ac2), var(--ac3));
+  color:#fff;
+  box-shadow:
+    0 6px 18px rgba(0,0,0,.28),
+    0 0 0 1px rgba(255,255,255,.18) inset;
+  transform: translateY(-1px);
+}
+
 /* 低モーション設定への配慮 */
 @media (prefers-reduced-motion: reduce){
   .sticky-tabs, .sticky-tabs.visible, .tablink{ transition:none !important; transform:none !important; filter:none !important; }
@@ -247,40 +262,80 @@ h1,h2,h3,h4,h5,h6,code,pre,.headline,.tablink{font-family:'mononoki', monospace}
 "#;
 
 const APP_JS: &str = r#"
-// スクロール量に応じてタブ表示切替＋クリックでスムーススクロール
+// スクロール量に応じてタブ表示切替＋アクティブハイライト＋クリックでスムーススクロール
 (function(){
   const tabs = document.getElementById('stickyTabs');
   const home = document.getElementById('home');
   if (!tabs || !home) return;
 
+  // --- 1) タブの表示/非表示（ヒーロー領域から離れたら表示） ---
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(([entry])=>{
-      // home が十分見えている時は隠す、離れたら表示
       const mostlyVisible = entry.intersectionRatio > 0.6;
       tabs.classList.toggle('visible', !mostlyVisible);
     }, { threshold: [0, 0.6, 1] });
     io.observe(home);
   } else {
-    // Fallback: スクロール量で判定
-    const onScroll = ()=>{
+    const onScrollShowHide = ()=>{
       const y = window.scrollY || document.documentElement.scrollTop;
       tabs.classList.toggle('visible', y > window.innerHeight * 0.4);
     };
-    window.addEventListener('scroll', onScroll, { passive:true });
-    onScroll();
+    window.addEventListener('scroll', onScrollShowHide, { passive:true });
+    onScrollShowHide();
   }
 
-  // クリックで目的のセクションへスムーススクロール
-  tabs.querySelectorAll('.tablink').forEach(btn=>{
+  // --- 2) セクションに応じてアクティブなタブをハイライト ---
+  const links = Array.from(tabs.querySelectorAll('.tablink'));
+  const sections = links
+    .map(btn => document.querySelector(btn.getAttribute('data-target')))
+    .filter(Boolean);
+
+  function setActive(btn){
+    links.forEach(b => {
+      const active = b === btn;
+      b.classList.toggle('active', active);
+      if (active) b.setAttribute('aria-current','page');
+      else b.removeAttribute('aria-current');
+    });
+  }
+
+  // 画面中央に最も近いセクションのタブをアクティブにする
+  let ticking = false;
+  function updateActive(){
+    if (sections.length === 0) return;
+    const mid = window.innerHeight / 2;
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    for (let i=0; i<sections.length; i++){
+      const r = sections[i].getBoundingClientRect();
+      const center = r.top + r.height/2;
+      const dist = Math.abs(center - mid);
+      if (dist < bestDist){ bestDist = dist; bestIdx = i; }
+    }
+    setActive(links[bestIdx]);
+  }
+
+  window.addEventListener('scroll', ()=>{
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{ updateActive(); ticking = false; });
+  }, { passive:true });
+
+  // --- 3) クリックで対象セクションへスクロール＆即ハイライト ---
+  links.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const target = btn.getAttribute('data-target');
-      if (!target) return;
       const el = document.querySelector(target);
       if (!el) return;
-
       try { el.scrollIntoView({ behavior:'smooth', block:'start' }); }
-      catch { window.location.hash = target; }
+      catch { location.hash = target; }
+      setActive(btn);
+      // スムーススクロール後の最終位置で再評価
+      setTimeout(updateActive, 700);
     });
   });
+
+  // 初期状態
+  updateActive();
 })();
 "#;
