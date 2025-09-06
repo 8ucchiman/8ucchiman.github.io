@@ -148,7 +148,6 @@ const STYLE_CSS: &str = r#"
 @font-face {
   font-family: 'mononoki';
   src: url('fonts/MononokiNerdFont-Regular.woff2') format('woff2'),
-       url('fonts/MononokiNerdFont-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -156,7 +155,6 @@ const STYLE_CSS: &str = r#"
 @font-face {
   font-family: 'mononoki';
   src: url('fonts/MononokiNerdFont-Bold.woff2') format('woff2'),
-       url('fonts/MononokiNerdFont-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
