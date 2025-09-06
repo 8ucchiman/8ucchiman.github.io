@@ -60,7 +60,7 @@ fn main() -> std::io::Result<()> {
 
     // Contact URLs (edit these to your actual profiles)
     let contact_github   = "https://github.com/Bucchiman";
-    let contact_linkedin = "www.linkedin.com/in/8ucchiman";
+    let contact_linkedin = "https://www.linkedin.com/in/8ucchiman";
     let contact_youtube  = "https://www.youtube.com/@8ucchiman";
     let contact_blog     = "https://8ucchiman.github.io";
 
