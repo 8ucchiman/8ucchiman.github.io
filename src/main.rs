@@ -59,9 +59,9 @@ fn main() -> std::io::Result<()> {
     fs::write(out.join("assets/app.js"), APP_JS)?;
 
     // Contact URLs (edit these to your actual profiles)
-    let contact_github   = "https://github.com/8ucchiman";
-    let contact_linkedin = "https://www.linkedin.com/in/your-handle";
-    let contact_youtube  = "https://www.youtube.com/@your-channel";
+    let contact_github   = "https://github.com/Bucchiman";
+    let contact_linkedin = "www.linkedin.com/in/8ucchiman";
+    let contact_youtube  = "https://www.youtube.com/@8ucchiman";
     let contact_blog     = "https://8ucchiman.github.io";
 
     fs::write(
