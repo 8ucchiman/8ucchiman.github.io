@@ -54,6 +54,9 @@ fn main() -> std::io::Result<()> {
     fs::create_dir_all(out)?;
     fs::create_dir_all(out.join("assets"))?;
     fs::create_dir_all(out.join("assets/fonts"))?;
+
+    // assets/ 配下（fonts, icons, 画像）をそのまま dist/assets/ へコピー
+    copy_dir(Path::new("assets"), &out.join("assets"))?;
     fs::write(out.join(".nojekyll"), b"")?;
     fs::write(out.join("assets/style.css"), STYLE_CSS)?;
     fs::write(out.join("assets/app.js"), APP_JS)?;
@@ -221,6 +224,20 @@ fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 fn html_attr(s: &str) -> String { html_escape(s).replace('\"', "&quot;") }
+
+fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let (from, to) = (entry.path(), dst.join(entry.file_name()));
+        if entry.file_type()?.is_dir() {
+            copy_dir(&from, &to)?;
+        } else {
+            fs::copy(&from, &to)?;
+        }
+    }
+    Ok(())
+}
 
 fn projects_to_json(ps: &[Project]) -> String {
     let mut s = String::from("[");

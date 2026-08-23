@@ -1,0 +1,14 @@
+{
+  "name": "8ucchiman-homepage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portfolio site built by a zero-dependency Rust builder, served from Cloudflare Workers",
+  "scripts": {
+    "build": "cargo run --release",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
+}
