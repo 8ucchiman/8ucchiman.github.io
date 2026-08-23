@@ -6,5 +6,13 @@
     "directory": "./dist",
     "not_found_handling": "none"
   },
+  // Custom Domains require an exact hostname match, so apex and www are
+  // registered separately. Cloudflare creates the DNS records and certs.
+  "routes": [
+    { "pattern": "8ucchiman.com", "custom_domain": true },
+    { "pattern": "www.8ucchiman.com", "custom_domain": true }
+  ],
+  // Independent of `routes`; kept so the workers.dev URL stays available.
+  "workers_dev": true,
   "observability": { "enabled": true }
 }
